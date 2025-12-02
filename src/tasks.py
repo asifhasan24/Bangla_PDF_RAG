@@ -8,7 +8,7 @@ import os
 import json
 from config import VECTOR_STORE_DIR
 
-generator = GeminiGenerator(model_name="gemini-1.5-flash")
+generator = GeminiGenerator(model_name="gemini-2.5-flash")
 embedder = Embedder(model_name="sentence-transformers/LaBSE") # Assuming this is the model used for embedding
 
 @celery_app.task

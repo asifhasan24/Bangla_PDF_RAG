@@ -88,3 +88,14 @@ async def result_endpoint(task_id: str):
     result = task.get()
     memory.add_bot_message(result)
     return ResultResponse(status=task.status, answer=result)
+
+import redis
+
+@app.get("/redis-health")
+async def redis_health():
+    try:
+        r = redis.Redis.from_url("redis://localhost:6379/0")
+        r.ping()
+        return {"status": "ok", "message": "Redis connection successful."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Redis connection failed: {e}")
