@@ -2,10 +2,10 @@ import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from .memory   import ChatMemory
-from .retriever import Retriever
-# from .generator import Generator
-from .generator import GeminiGenerator
+from memory import ChatMemory
+from retriever import Retriever
+from tasks import generate_answer_task
+from celery.result import AsyncResult
 
 # 1️⃣ Load env
 load_dotenv()
@@ -18,19 +18,22 @@ app = FastAPI(
 
 memory = ChatMemory(max_messages=10)
 retriever = Retriever(
-    index_path="vector_store/index.faiss",
-    metadata_path="vector_store/metadata.json"
+    index_path="/home/asif/Documents/rag_project/vector_store/index.faiss",
+    metadata_path="/home/asif/Documents/rag_project/vector_store/metadata.json"
 )
-generator = GeminiGenerator(model_name="gemini-2.5-flash")
 
 # 3️⃣ Request/Response schemas
 class QueryRequest(BaseModel):
     query: str
 
 class QueryResponse(BaseModel):
-    answer: str
+    task_id: str
 
-# 4️⃣ Endpoint
+class ResultResponse(BaseModel):
+    status: str
+    answer: str = None
+
+# 4️⃣ Endpoints
 @app.post("/query", response_model=QueryResponse)
 async def query_endpoint(req: QueryRequest):
     q = req.query.strip()
@@ -45,9 +48,16 @@ async def query_endpoint(req: QueryRequest):
 
     # generate
     ctx = memory.get_context()
-    ans = generator.generate(question=q, context=ctx, documents=docs)
+    task = generate_answer_task.delay(question=q, context=ctx, documents=docs)
 
-    # record bot reply
-    memory.add_bot_message(ans)
+    return QueryResponse(task_id=task.id)
 
-    return QueryResponse(answer=ans)
+@app.get("/result/{task_id}", response_model=ResultResponse)
+async def result_endpoint(task_id: str):
+    task = AsyncResult(task_id)
+    if not task.ready():
+        return ResultResponse(status=task.status)
+
+    result = task.get()
+    memory.add_bot_message(result)
+    return ResultResponse(status=task.status, answer=result)
