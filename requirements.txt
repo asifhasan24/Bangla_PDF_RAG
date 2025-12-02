@@ -119,3 +119,4 @@ wcwidth==0.2.13
 websockets==15.0.1
 redis==5.0.7
 celery==5.4.0
+python-multipart

@@ -11,6 +11,7 @@ load_dotenv()
 # Imports
 from retriever import Retriever
 from generator import GeminiGenerator
+from src.config import DEFAULT_INDEX_PATH, DEFAULT_METADATA_PATH, BASE_DIR
 
 
 def load_testcases(path: str) -> list[dict]:
@@ -81,7 +82,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--testcases',
         type=str,
-        default='evaluation/test_queries.json',
+        default=os.path.join(BASE_DIR, 'evaluation', 'test_queries.json'),
         help='Path to JSON with test queries and gold_texts'
     )
     parser.add_argument(
@@ -94,11 +95,11 @@ if __name__ == "__main__":
 
     # Initialize components
     retriever = Retriever(
-        index_path='vector_store/index.faiss',
-        metadata_path='vector_store/metadata.json'
+        index_path=DEFAULT_INDEX_PATH,
+        metadata_path=DEFAULT_METADATA_PATH
     )
     # Instantiate GeminiGenerator without api_key arg
-    model_name = os.getenv('GEMINI_MODEL_NAME', 'gemini-2.5-flash')
+    model_name = os.getenv('GEMINI_MODEL_NAME', 'gemini-1.5-flash')
     generator = GeminiGenerator(model_name=model_name)
 
     # Load test cases
